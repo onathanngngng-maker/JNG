@@ -86,7 +86,10 @@ export function figureLocksFromPaper(
         excerpt: excerpt.slice(0, 1200),
       };
     })
-    .filter((lock): lock is FigureLock => Boolean(lock) && (lock.identities.length > 0 || lock.excerpt.length > 0));
+    .filter((lock): lock is FigureLock => {
+      if (!lock) return false;
+      return lock.identities.length > 0 || lock.excerpt.length > 0;
+    });
 }
 
 export function figureLockPromptBlock(locks: FigureLock[]): string {
