@@ -1,0 +1,45 @@
+#!/bin/bash
+export PATH="/Users/chunheing/Projects/paper-gen/.conda/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+WEB="/Users/chunheing/Projects/paper-gen/web"
+LOG="/tmp/paper-gen-share.log"
+TUNNEL_LOG="/tmp/paper-gen-tunnel.log"
+cd "$WEB" || exit 1
+
+if ! lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then
+  npm run dev >"$LOG" 2>&1 &
+  for _ in $(seq 1 50); do
+    lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1 && break
+    sleep 0.3
+  done
+fi
+
+: >"$TUNNEL_LOG"
+npx --yes cloudflared tunnel --url http://127.0.0.1:3000 >"$TUNNEL_LOG" 2>&1 &
+
+URL=""
+for _ in $(seq 1 40); do
+  URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' "$TUNNEL_LOG" | head -1)
+  if [ -n "$URL" ]; then
+    break
+  fi
+  sleep 0.5
+done
+
+open "http://localhost:3000"
+
+if [ -z "$URL" ]; then
+  osascript -e 'display alert "Could not create a professor link. Your local site is still open at http://localhost:3000" as warning'
+else
+  echo "$URL" | pbcopy
+  osascript <<APPLESCRIPT
+display dialog "Paper Gen is running.
+
+Your professor link (also copied):
+$URL
+
+Keep this window open while they use it.
+Click Stop when they are finished." buttons {"Stop"} default button "Stop" with title "Paper Gen Share"
+APPLESCRIPT
+fi
+
+"$WEB/stop.sh" >/dev/null 2>&1 || true

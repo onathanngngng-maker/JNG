@@ -1,0 +1,35 @@
+#!/bin/bash
+export PATH="/Users/chunheing/Projects/paper-gen/.conda/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+WEB="/Users/chunheing/Projects/paper-gen/web"
+LOG="/tmp/paper-gen-app.log"
+cd "$WEB" || exit 1
+
+start_local() {
+  if ! lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then
+    npm run dev >"$LOG" 2>&1 &
+    for _ in $(seq 1 50); do
+      if lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then
+        return 0
+      fi
+      sleep 0.3
+    done
+    osascript -e 'display alert "Paper Gen could not start. Check that Node is installed in the project." as critical'
+    exit 1
+  fi
+}
+
+stop_all() {
+  "$WEB/stop.sh" >/dev/null 2>&1 || true
+}
+
+start_local
+open "http://localhost:3000"
+
+osascript <<'APPLESCRIPT'
+display dialog "Paper Gen is open in your browser.
+
+Keep this window until you are done.
+Click Stop to close the app." buttons {"Stop"} default button "Stop" with title "Paper Gen"
+APPLESCRIPT
+
+stop_all

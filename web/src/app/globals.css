@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-source-sans);
+  --font-serif: var(--font-source-serif);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.output-prose {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.a4-frame {
+  width: 210mm;
+  max-width: 210mm;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.12);
+  outline: 1px solid #e2e8f0;
+}
+
+.pdf-page {
+  width: 210mm;
+  max-width: 210mm;
+  min-width: 0;
+  height: 297mm;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 15mm 16mm;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.pdf-page-label {
+  flex: none;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  overflow: hidden;
+  border-bottom: 1px solid #0f172a;
+  color: #64748b;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.exam-body {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  white-space: normal;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: justify;
+  text-align-last: start;
+  hyphens: auto;
+}
+
+.question-block {
+  margin: 0 0 1.5em 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.question-block p,
+.question-block ol,
+.question-block ul {
+  margin: 0.25em 0;
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: justify;
+  text-align-last: start;
+  white-space: normal;
+}
+
+.question-block ol,
+.question-block ul {
+  padding-left: 1.5em;
+}
+
+.exam-body p.exam-center,
+.question-block p.exam-center {
+  margin-bottom: 0.35em;
+  font-weight: 700;
+  text-align: center;
+  text-align-last: center;
+}
+
+.a4-measure {
+  position: fixed;
+  left: -12000px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.a4-measure .exam-body {
+  flex: none;
+  height: auto;
+  overflow: visible;
+}
+
+.exam-figure {
+  display: block;
+  max-width: 60%;
+  max-height: 145mm;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0.75em auto;
+  page-break-before: auto;
+  break-before: auto;
+}
+
+.exam-math {
+  display: inline;
+  white-space: nowrap;
+}
+
+.exam-body .katex {
+  font-size: 1.05em;
+  white-space: nowrap;
+}
+
+.exam-body .katex-display {
+  margin: 0.6em 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.solution-block {
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  text-align-last: left;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.solution-sheet .exam-body {
+  border-top: 1px solid #0f172a;
+  padding-top: 10px;
+}
+
+.pdf-page-footer {
+  flex: none;
+  margin: 10px 0 0;
+  color: #0f172a;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.solution-header {
+  margin: 0.45em 0 0.1em;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  text-align-last: left;
+}
+
+.solution-block > .solution-header:first-child {
+  margin-top: 0;
+}
+
+.solution-block p {
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  text-align-last: left;
+}
+
+.solution-block .exam-math {
+  display: inline;
+  white-space: normal;
+}
+
+.solution-block .katex {
+  font-size: 1em;
+  white-space: normal;
+}
+
+@media print {
+  .pdf-page {
+    box-shadow: none;
+    outline: none;
+    break-after: page;
+    page-break-after: always;
+  }
+}

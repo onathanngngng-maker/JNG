@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paper Gen — examiner practice pack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <p class="eyebrow">University examiner · RAG</p>
+        <h1>A close-variant practice paper, worked solutions, and marking scheme.</h1>
+        <p class="lede">
+          Uploaded papers and solutions are chunked into a local retrieval index. Generation pulls
+          the matching question and mark-scheme chunks, then writes a close variant with the same
+          structure, marks, and topic order.
+        </p>
+      </header>
+
+      <main>
+        <section class="panel" aria-labelledby="upload-heading">
+          <h2 id="upload-heading">1. Reference paper</h2>
+          <div class="meta-row three">
+            <label>
+              Subject / topic
+              <input id="paper-subject" type="text" placeholder="e.g. Organic chemistry" />
+            </label>
+            <label>
+              Academic level
+              <input id="paper-level" type="text" placeholder="e.g. Year 2 undergraduate" />
+            </label>
+            <label>
+              Time allowed
+              <input id="paper-time" type="text" placeholder="e.g. 2 hours" />
+            </label>
+          </div>
+          <label class="title-field">
+            Paper title
+            <input id="paper-title" type="text" placeholder="Optional title for the new paper" />
+          </label>
+
+          <div class="drop-grid">
+            <label class="dropzone" id="paper-drop">
+              <input id="paper-file" type="file" accept="application/pdf,.pdf" hidden />
+              <span class="drop-kicker">Required template</span>
+              <strong>Reference past paper PDF</strong>
+              <span class="drop-hint" id="paper-file-name">Click or drop the question paper</span>
+            </label>
+            <label class="dropzone" id="solution-drop">
+              <input id="solution-file" type="file" accept="application/pdf,.pdf" hidden />
+              <span class="drop-kicker">Recommended</span>
+              <strong>Solution / mark scheme PDF</strong>
+              <span class="drop-hint" id="solution-file-name">Sets answer style and marking points</span>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button type="button" id="generate-btn">Generate close-variant paper</button>
+            <button type="button" class="ghost" id="sample-btn">Load sample paper</button>
+            <p class="status" id="status" role="status"></p>
+            <p class="status" id="rag-stats"></p>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="result-panel" aria-labelledby="result-heading">
+          <div class="result-head">
+            <h2 id="result-heading">2. Examiner pack</h2>
+            <div class="download-row">
+              <button type="button" class="accent" id="dl-full">Download full pack PDF</button>
+              <button type="button" id="dl-questions">Paper only</button>
+              <button type="button" id="dl-answers">Answers + marking scheme</button>
+            </div>
+          </div>
+          <p class="note" id="result-note"></p>
+          <pre class="retrieval-log" id="retrieval-preview"></pre>
+          <div class="preview-grid three">
+            <article>
+              <h3>Generated paper</h3>
+              <pre id="paper-preview"></pre>
+            </article>
+            <article>
+              <h3>Answer key and worked solutions</h3>
+              <pre id="answer-preview"></pre>
+            </article>
+            <article>
+              <h3>Marking scheme</h3>
+              <pre id="scheme-preview"></pre>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/parser.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/generator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pdf-export.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>

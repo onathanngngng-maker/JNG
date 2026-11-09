@@ -1,0 +1,49 @@
+---
+description: Paper Gen product spec — similar past papers and matching solutions
+alwaysApply: true
+---
+
+# Paper Gen product spec
+
+Users upload a **reference past paper** and a **reference suggested solution**. The app generates a **new similar past paper** and a **new suggested / worked solution** in the same format as the uploaded solution. Do not generate a marking scheme. Do not write the solution as program code. Final files are **PDF**.
+
+## Pagination
+
+Mirror the uploaded paper:
+
+- One question per original page → one generated question per page
+- Two questions on an original page → two generated questions on that page
+- If a question continues on the next page, keep the same page break
+- The suggested solution uses the uploaded solution's page breaks. One question and its solution on a page stays one per page. If that solution continues, keep the same page break.
+
+## Images
+
+If the uploaded paper has images, figures, or diagrams, copy them onto the matching page/question of the generated paper. Do not drop figures and do not redraw them.
+
+Questions with no figure may change the named object to another of the same kind, and must change the calculation numbers. Palladium-103 may become another isotope. Keep the question type, parts, and marks. Every new generation uses a different set of calculation numbers from the previous paper and from the uploaded paper.
+
+Questions with a figure must stay **consistent with the copied image**. Keep the object and every label, length, angle, axis, scale, circuit symbol, data point, and value printed on the figure. If the image is Phosphorus, the question is Phosphorus only. If the figure shows only symbols and no numbers, such as L and D on a collimator, change those numbers in the text. Change calculation numbers that are not printed on the figure, then recalculate the solution. Write negative powers with the minus, such as \(10^{-19}\) and \(10^{-31}\).
+
+## Mathematics
+
+Use **LaTeX-style** notation for formulas, variables, symbols, units, and expressions. Do not write maths as plain words when proper notation exists.
+
+Examples:
+
+- \(\Delta v\) not "delta v"
+- \(\theta\) not "theta"
+- \(\pi r^2\) not "pi r^2"
+- \(x^2\) not plain `x^2`
+- \(v = u + at\)
+- \(\sqrt{x}\) not `sqrt(x)`
+- \(\frac{a}{b}\) not `a/b` when a fraction is intended
+- \(\mathrm{m\,s^{-2}}\) not `ms^-2` or `m/s^2`
+- \(9.81\ \mathrm{m\,s^{-2}}\) not `9.81 ms^-2`
+
+## User flow
+
+Homepage → Generate Past Paper → upload files → optional subject/level/instructions → generate via server LLM → display the paper and the suggested solution → download PDF.
+
+## Mirror the templates
+
+Same course, title style, layout, instructions, sections, question count/types/subquestions, marks, total marks, difficulty, topic sequence, command words. Close variants, not copies. Solution format and detail must match the uploaded solution. Numbering, marks, and new calculated values must correspond.
