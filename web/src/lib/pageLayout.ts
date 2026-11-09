@@ -1,5 +1,5 @@
 const QUESTION_BOUNDARY =
-  /(?:^|\n)\s*(?:Question\s+|Q(?:uestion)?\s+)(\d{1,2})\b|(?:^|\n)\s*(\d{1,2})\.\s+(?=[A-Za-z(\[])|(?:^|\n)\s*Solution\s+(\d{1,2})\b/gi;
+  /(?:^|\n)\s*(?:Question\s+|Q(?:uestion)?\.?\s*)(\d{1,2})\b|(?:^|\n)\s*(\d{1,2})\.\s+(?=[A-Za-z(\[])|(?:^|\n)\s*Solution\s+(\d{1,2})\b/gi;
 
 export function questionNumbersInText(text: string): number[] {
   const found: number[] = [];
@@ -265,40 +265,118 @@ export function layoutSolutionLikeUpload(
     }));
   }
 
-  const solutions = collectSolutionSections(solutionText);
-  const paperQuestions = new Map(splitQuestions(stripPrintedPageLabels(paperText)).map((question) => [question.number, question.body]));
+  const paperQuestions = splitQuestions(stripPrintedPageLabels(paperText));
+  const answers = answersByQuestion(solutionText);
   const intro = paperIntro(paperText);
   if (!solutionPages.length) return paginateSolutions(solutionText);
 
-  const groups: PageLayoutInput[][] = [];
-  for (const page of solutionPages) {
-    if (page.questionNumbers.length || !groups.length) groups.push([page]);
-    else groups[groups.length - 1].push(page);
-  }
-
+  const pages = solutionPages.some((page) => page.questionNumbers.length)
+    ? solutionPages
+    : distributeQuestions(paperQuestions, solutionPages);
+  const byNumber = new Map(paperQuestions.map((question) => [question.number, question.body]));
   const laid: GeneratedPage[] = [];
-  groups.forEach((group, groupIndex) => {
-    const number = group[0].questionNumbers[0] || groupIndex + 1;
-    const solution = solutions.find((item) => item.number === number);
-    const question = paperQuestions.get(number) || solution?.preface.trim() || "";
-    const working = chunkLines(solution?.body || "", group.length);
-    group.forEach((page, index) => {
-      const parts: string[] = [];
-      if (index === 0) {
-        if (groupIndex === 0 && intro && !question.includes(intro.slice(0, 24))) parts.push(intro);
-        if (question) parts.push(question);
-        parts.push(`[FIGURE FROM ORIGINAL PAGE ${page.page}]`);
-        parts.push(`Solution ${number}:`);
+  const placed = new Set<number>();
+
+  pages.forEach((page, pageIndex) => {
+    const numbers = page.questionNumbers.filter((number) => byNumber.has(number) || answers.has(number));
+    const parts: string[] = [];
+    if (pageIndex === 0 && intro) parts.push(intro);
+    if (!numbers.length) {
+      const carried = [...answers.keys()].find((number) => placed.has(number));
+      if (carried && answers.get(carried)) {
+        const rest = answers.get(carried) || "";
+        answers.set(carried, "");
+        if (rest.trim()) parts.push(rest);
       }
-      if (working[index]) parts.push(working[index]);
-      const htmlSource = parts.filter((part) => part.trim()).join("\n");
-      if (!htmlSource.replace(/\[FIGURE FROM ORIGINAL PAGE \d+\]/gi, "").trim()) return;
-      laid.push({
-        page: page.page,
-        htmlSource,
-        questionNumbers: index === 0 ? [number] : [],
-      });
+    }
+    numbers.forEach((number) => {
+      const question = byNumber.get(number) || "";
+      const answer = withoutRepeatedQuestion(question, answers.get(number) || "");
+      if (question) parts.push(question);
+      if (answer.trim()) parts.push(answer.trim());
+      else if (!question) parts.push(`Solution ${number}:`);
+      placed.add(number);
+      answers.set(number, "");
     });
+    const htmlSource = parts.filter((part) => part.trim()).join("\n\n");
+    if (!htmlSource.trim()) return;
+    laid.push({ page: page.page, htmlSource, questionNumbers: numbers });
   });
+
+  const missed = paperQuestions.filter((question) => !placed.has(question.number));
+  if (missed.length && laid.length) {
+    const tail = missed
+      .map((question) =>
+        [question.body, withoutRepeatedQuestion(question.body, answers.get(question.number) || "")]
+          .filter(Boolean)
+          .join("\n\n"),
+      )
+      .join("\n\n");
+    laid[laid.length - 1].htmlSource = `${laid[laid.length - 1].htmlSource}\n\n${tail}`.trim();
+    laid[laid.length - 1].questionNumbers = [
+      ...laid[laid.length - 1].questionNumbers,
+      ...missed.map((question) => question.number),
+    ];
+  }
   return laid.length ? laid : paginateSolutions(solutionText);
+}
+
+function distributeQuestions(
+  questions: { number: number; body: string }[],
+  pages: PageLayoutInput[],
+): PageLayoutInput[] {
+  if (!questions.length) return pages;
+  const firstHasParts = /\(a\)/i.test(questions[0].body) && /\(b\)/i.test(questions[0].body);
+  if (firstHasParts && pages.length > 1 && questions.length > 1) {
+    const rest = questions.slice(1);
+    const restPages = pages.slice(1);
+    const size = Math.max(1, Math.ceil(rest.length / restPages.length));
+    return [
+      { page: pages[0].page, questionNumbers: [questions[0].number] },
+      ...restPages.map((page, index) => ({
+        page: page.page,
+        questionNumbers: rest.slice(index * size, (index + 1) * size).map((question) => question.number),
+      })),
+    ];
+  }
+  const size = Math.max(1, Math.ceil(questions.length / pages.length));
+  return pages.map((page, index) => ({
+    page: page.page,
+    questionNumbers: questions.slice(index * size, (index + 1) * size).map((question) => question.number),
+  }));
+}
+
+function withoutRepeatedQuestion(question: string, answer: string): string {
+  const asked = question.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (!asked || !answer.trim()) return answer.trim();
+  const kept = answer.split("\n").filter((line) => {
+    const compact = line.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    if (compact.length < 24) return true;
+    return !asked.includes(compact);
+  });
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function answersByQuestion(solutionText: string): Map<number, string> {
+  const answers = new Map<number, string>();
+  const remember = (number: number, body: string) => {
+    const cleaned = body.trim();
+    if (!cleaned) return;
+    const previous = answers.get(number) || "";
+    if (cleaned.length > previous.length) answers.set(number, cleaned);
+  };
+  for (const section of collectSolutionSections(solutionText)) remember(section.number, section.body);
+  for (const question of splitQuestions(stripPrintedPageLabels(solutionText))) {
+    remember(question.number, question.body.replace(/^Q\.?\s*\d+[^\n]*\n/i, ""));
+  }
+  return answers;
+}
+
+/** Question numbers that have a paper question but no real working in the solution. */
+export function questionsMissingAnswers(paperText: string, solutionText: string): number[] {
+  const answers = answersByQuestion(solutionText);
+  return splitQuestions(stripPrintedPageLabels(paperText))
+    .filter((question) => question.body.trim().length > 40)
+    .map((question) => question.number)
+    .filter((number) => (answers.get(number) || "").replace(/\s+/g, "").length < 80);
 }

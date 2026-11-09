@@ -145,18 +145,35 @@ export function ExamPreview({
         const questionText = page.htmlSource.replace(/\[FIGURE FROM ORIGINAL PAGE \d+\]/gi, "").trim();
         if (!questionText) return null;
         const layout = pages.find((row) => row.page === page.page);
-        const paperLayout = paperPages.find((row) => row.questionNumbers.some((number) => page.questionNumbers.includes(number)));
-        const images = showImages ? (layout?.images?.length ? layout.images : paperLayout?.images || []) : [];
         let html = solution ? renderSolutionPage(page.htmlSource) : questionBlockHtml(latexToHtml(page.htmlSource, flow));
-        images.forEach((src, imageIndex) => {
-          const img = `<img src="${src}" alt="Figure from original page ${page.page}" class="exam-figure" />`;
-          if (solution) {
-            html = injectFigureIntoSolution(html, img);
-            return;
+        if (!solution) {
+          layout?.images.forEach((src, imageIndex) => {
+            if (!showImages) return;
+            const anchor = layout.imageAnchors?.[imageIndex];
+            const img = `<img src="${src}" alt="Figure from original page ${layout.page}" class="exam-figure" />`;
+            const questionNumber = page.questionNumbers[imageIndex] ?? page.questionNumbers[0];
+            html = injectFigureIntoQuestion(html, img, questionNumber, anchor);
+          });
+        } else if (showImages) {
+          let pastedPaperFigure = false;
+          paperPages.forEach((source) => {
+            source.images.forEach((src, imageIndex) => {
+              const anchor = source.imageAnchors?.[imageIndex];
+              const label = anchor?.match(/^\(([a-z])\)$/i)?.[1];
+              if (label && !new RegExp(`\\(${label}\\)`, "i").test(html)) return;
+              if (!label && !page.questionNumbers.some((number) => source.questionNumbers.includes(number))) return;
+              const img = `<img src="${src}" alt="Figure from the uploaded paper" class="exam-figure" />`;
+              html = injectFigureIntoQuestion(html, img, page.questionNumbers[0], anchor);
+              pastedPaperFigure = true;
+            });
+          });
+          if (!pastedPaperFigure) {
+            layout?.images.forEach((src) => {
+              const img = `<img src="${src}" alt="Figure from the uploaded solution" class="exam-figure" />`;
+              html = injectFigureIntoSolution(html, img);
+            });
           }
-          const questionNumber = page.questionNumbers[imageIndex] ?? page.questionNumbers[0];
-          html = injectFigureIntoQuestion(html, img, questionNumber);
-        });
+        }
         html = html.replace(/\[FIGURE FROM ORIGINAL PAGE \d+\]/gi, "");
         if (!html.trim()) return null;
         const questions = page.questionNumbers.length

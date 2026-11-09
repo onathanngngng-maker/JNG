@@ -42,6 +42,7 @@ export async function completeWithOpenRouter(
         temperature: 0.1,
         max_tokens: budget,
         ...(usesReasoning(model) ? { reasoning: { max_tokens: 256, exclude: true } } : {}),
+        ...(model.includes("deepseek") ? { provider: { sort: "price" } } : {}),
         messages: [
           {
             role: "system",

@@ -1,5 +1,6 @@
 import { figureLockPromptBlock, figureLocksFromPaper, noFigurePromptBlock } from "@/lib/figureLocks";
 import { checkedWorking } from "@/lib/checkedWorking";
+import { splitQuestions } from "@/lib/pageLayout";
 import { buildVariantPlan } from "@/lib/variantNumbers";
 
 type PromptInput = {
@@ -47,11 +48,12 @@ export function buildPaperPrompt(input: PromptInput): string {
 ${meta}
 
 RULES:
-- Same course, title, layout, instructions, sections, question count/types/subquestions, marks, difficulty, command words.
-- No figure: change the named object to another of the same kind. Palladium-103 can become a different isotope. Keep the question type, parts, and marks.
+- Same course, title, instructions, question count, part letters, marks, and command words. Keep each part on its own line, in the same order as the upload. (a) stays on one line. Q.1 stays Q.1. Do not join the paper into one paragraph.
+- Do not add a question. Do not remove a question. Edit the question that is already there.
+- No printed figure: keep the same task and marks, and rewrite the question. Change the named object and the numbers. A long question must not stay the same sentence. Palladium-103 can become another isotope. If the reference solution prints a diagram for that question, keep the object in that diagram, and still rewrite the words around it. Do not invent an extra question.
 - Change every calculation number to the value in THIS RUN. A new Generate must not repeat the previous paper's numbers.
-- Has a figure: copy the figure and keep what is drawn. Phosphorus stays Phosphorus. If the drawing shows only letters such as L and D, with no numbers on it, change those numbers in the text. Keep a number only when it is printed on the figure, such as +6.2 kV.
-- Put [FIGURE FROM ORIGINAL PAGE n] where the original has a figure.
+- A part that a printed figure illustrates keeps the object drawn. Ethanol stays ethanol when the drawing is ethanol. Put [FIGURE FROM ORIGINAL PAGE n] on its own line immediately after that part, before the next part. Do not move the figure to the end of the page.
+- If the drawing shows only letters such as L and D, with no numbers on it, change those numbers in the text. Keep a number only when it is printed on the figure, such as +6.2 kV.
 - Paper and solution must match (numbering, marks, new values).
 - One original page = one generated page. Start each page with --- PAGE n ---. Do not write "Page n of m" in the question text.
 - Units must look like the original paper. A length stays cm. Attenuation is cm⁻¹. Mass-energy absorption is cm²/g. Keep the minus on negative powers: 1.6×10⁻¹⁹ C, 9.1×10⁻³¹ kg, 9×10⁹ Bq, W/cm². Never leave ^, _, or braces visible.
@@ -94,10 +96,10 @@ export function buildSolutionPrompt(input: {
   return `Write the suggested solution for the generated paper.
 ${meta}
 Copy the reference solution's format. Recalculate with the generated paper's numbers. Do not copy the reference solution's numbers. Keep a figure's object unchanged.
-Keep the reference solution's page breaks when you can. One question and its solution on a page stays on one page. Write the full working for every question. Do not stop after the page headings.
+Keep the reference solution's page breaks when you can. One question and its solution on a page stays on one page. Write the answer under every question that is already in the generated paper. Do not add a question. Put each answer directly under its own question.
 ${layoutLines ? `PAGES: ${layoutLines}` : "Use the --- PAGE n --- markers in the reference solution."}
 Copy the reference solution page by page. Keep every --- PAGE n --- break, including a solution that continues onto the next page.
-On each page, copy what that page of the reference shows: the title line, the question, then "Solution n:", then each working step on its own line.
+On each page, keep the questions that page already has, and put the answer under each one. Do not add Moseley's law or any other question that is not already on that page.
 Do not shorten the working. Do not join steps into one line.
 Then the parts on their own lines, in this shape:
 a. (1/2)^n = 1/...
@@ -119,6 +121,33 @@ ${paper}
 
 REFERENCE SOLUTION:
 ${solution}
+`;
+}
+
+export function buildMissingSolutionPrompt(input: {
+  generatedPaper: string;
+  solutionText?: string;
+  missing: number[];
+}): string {
+  const wanted = new Set(input.missing);
+  const questions = splitQuestions(input.generatedPaper)
+    .filter((question) => wanted.has(question.number))
+    .map((question) => question.body.trim())
+    .join("\n\n");
+  const reference = input.solutionText?.trim()
+    ? clip(input.solutionText.trim(), 2500)
+    : "(No reference solution. Write full working.)";
+  const headings = input.missing.map((number) => `Solution ${number}:`).join("\n");
+  return `The solution is missing the working for question ${input.missing.join(", ")}.
+Write only those answers. Start each one with its heading on its own line:
+${headings}
+Put the full working under the question, in the same detail as the reference. Use the generated paper's numbers. Do not add a question.
+
+QUESTIONS:
+${questions}
+
+REFERENCE SOLUTION:
+${reference}
 `;
 }
 

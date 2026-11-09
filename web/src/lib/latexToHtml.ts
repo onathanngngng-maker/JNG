@@ -18,7 +18,15 @@ function wrapMath(html: string): string {
   return `<span class="exam-math">${html}</span>`;
 }
 
-const NEW_LINE = /^(?:[-•*]|\d+\.|[a-z]\.|solution|submit|phy\d|---|\[FIGURE)/i;
+const NEW_LINE =
+  /^(?:[-•*]|\d+\.|[a-z]\.|\([a-z]\)|\([ivx]+\)|q\.?\s*\d+|question\s+\d+|solution|submit|mse\s*\d+|phy\d+|assignment\b|all answers|a scan|make sure|answer all|---|\[FIGURE)/i;
+
+/** Put Q.1 and (a) back on their own lines when the model joins them. */
+function restorePartBreaks(text: string): string {
+  return text
+    .replace(/[ \t]+(?=\([a-z]\)\s+)/gi, "\n")
+    .replace(/[ \t]+(?=Q\.?\s*\d+\b)/g, "\n");
+}
 
 function flowParagraphs(text: string): string {
   const blocks: string[] = [];
@@ -50,7 +58,7 @@ export function latexToHtml(text: string, flow = false): string {
   };
 
   let out = tidyGeneratedMath(text);
-  if (flow) out = flowParagraphs(out);
+  if (flow) out = flowParagraphs(restorePartBreaks(out));
   out = out.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_, src) => hold(src, true));
   out = out.replace(/\\\[([\s\S]+?)\\\]/g, (_, src) => hold(src, true));
@@ -93,8 +101,29 @@ export function questionBlockHtml(inner: string): string {
     .join("");
 }
 
+/** Insert the figure after the same part it followed in the uploaded paper. */
+function placeFigureAfterAnchor(html: string, img: string, anchor?: string): string | null {
+  const label = anchor?.trim().match(/^\(([a-z])\)$/i)?.[1];
+  if (!label) return null;
+  const paragraph = new RegExp(`(<p[^>]*>[\\s\\S]*?\\(${label}\\)[\\s\\S]*?</p>)`, "i");
+  if (!paragraph.test(html)) return null;
+  const markerAt = html.search(/\[FIGURE FROM ORIGINAL PAGE \d+\]/i);
+  const next = String.fromCharCode(label.charCodeAt(0) + 1);
+  const nextBeforeMarker =
+    markerAt >= 0 && new RegExp(`\\(${next}\\)`, "i").test(html.slice(0, markerAt));
+  const withoutLateMarker = nextBeforeMarker ? html.replace(/\[FIGURE FROM ORIGINAL PAGE \d+\]/i, "") : html;
+  return withoutLateMarker.replace(paragraph, `$1${img}`);
+}
+
 /** Put a figure inside the question it belongs to, not after the page. */
-export function injectFigureIntoQuestion(html: string, img: string, questionNumber?: number): string {
+export function injectFigureIntoQuestion(
+  html: string,
+  img: string,
+  questionNumber?: number,
+  anchor?: string,
+): string {
+  const anchored = placeFigureAfterAnchor(html, img, anchor);
+  if (anchored) return anchored.replace(/\[FIGURE FROM ORIGINAL PAGE \d+\]/gi, "");
   const marker = /\[FIGURE FROM ORIGINAL PAGE \d+\]/i;
   const blocks = [...html.matchAll(/<div class="question-block">[\s\S]*?<\/div>/g)];
   const targetIndex = (() => {

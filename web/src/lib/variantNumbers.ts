@@ -13,12 +13,12 @@ const FACTORS = [0.5, 0.6, 0.75, 0.8, 1.25, 1.5, 1.75, 2, 2.5, 3];
 export function buildVariantPlan(text: string, seed = randomSeed()): string {
   const hits = extractCalcNumbers(text);
   if (!hits.length) {
-    return `THIS RUN ${seed}. Change every calculation number. Do not keep the reference values.`;
+    return `THIS RUN ${seed}. This paper has no calculation to retarget. Edit the existing parts: change a named object that is not drawn in a figure, and keep the same task, part letter, and marks. Do not add a question.`;
   }
   const rendered = hits.map((hit, index) => replacement(hit, seed, index));
   keepWholeHalfLives(hits, rendered);
   const lines = hits.map((hit, index) => `${hit.token} → ${rendered[index]}`);
-  return `THIS RUN ${seed}. Use these calculation numbers. Do not keep the reference numbers, and do not repeat the numbers from the previous paper. If a waiting time is a whole number of half-lives, keep that whole number.\n${lines.join("\n")}`;
+  return `THIS RUN ${seed}. Use these calculation numbers. Do not keep the reference numbers, and do not repeat the numbers from the previous paper. If a waiting time is a whole number of half-lives, keep that whole number.\n${lines.join("\n")}\nAlso rewrite every long question that has no printed figure. Same task and marks. Different wording. Do not add a question.`;
 }
 
 function keepWholeHalfLives(hits: Hit[], rendered: string[]): void {

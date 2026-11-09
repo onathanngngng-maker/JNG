@@ -40,12 +40,13 @@ async function extractPdfDocument(file: File): Promise<ExtractedDocument> {
     for (let i = 1; i <= pdf.numPages; i += 1) {
       const page = await pdf.getPage(i);
       const text = await pageText(page);
-      const images = await pageImages(page);
+      const figures = await pageFigures(page);
       pageTexts.push(`--- PAGE ${i} ---\n${text}`);
       pageLayouts.push({
         page: i,
         questionNumbers: questionNumbersInText(text),
-        images,
+        images: figures.map((figure) => figure.src),
+        imageAnchors: figures.map((figure) => figure.anchor),
       });
     }
 
@@ -157,7 +158,7 @@ function isTextItem(item: unknown): item is { str: string; transform: number[]; 
   return Boolean(item && typeof item === "object" && "str" in item && "transform" in item);
 }
 
-async function pageImages(page: PDFPageProxy): Promise<string[]> {
+async function pageFigures(page: PDFPageProxy): Promise<Array<{ src: string; anchor: string }>> {
   const scale = 2;
   const viewport = page.getViewport({ scale });
   const canvas = document.createElement("canvas");
@@ -180,12 +181,57 @@ async function pageImages(page: PDFPageProxy): Promise<string[]> {
     height,
     textBoxes(text.items, viewport),
   ).filter((box) => !raster.some((image) => overlapRatio(box, image) > 0.45));
+  const lines = textLines(text.items, viewport);
 
   return [...raster, ...drawings]
     .sort((a, b) => a.y - b.y || a.x - b.x)
     .slice(0, 6)
-    .map((box) => cropBox(canvas, box))
-    .filter((url): url is string => Boolean(url));
+    .map((box) => {
+      const src = cropBox(canvas, box);
+      return src ? { src, anchor: anchorAbove(box, lines) } : null;
+    })
+    .filter((figure): figure is { src: string; anchor: string } => Boolean(figure));
+}
+
+function textLines(
+  items: unknown[],
+  viewport: { scale: number; convertToViewportPoint: (x: number, y: number) => number[] },
+): Array<{ text: string; bottom: number }> {
+  const glyphs: Array<{ text: string; x: number; bottom: number }> = [];
+  for (const item of items) {
+    if (!isTextItem(item) || !item.str.trim()) continue;
+    const [x, y] = viewport.convertToViewportPoint(item.transform[4], item.transform[5]);
+    glyphs.push({ text: item.str, x, bottom: y + 3 });
+  }
+  glyphs.sort((a, b) => (Math.abs(a.bottom - b.bottom) > 4 ? a.bottom - b.bottom : a.x - b.x));
+  const lines: Array<{ text: string; bottom: number }> = [];
+  for (const glyph of glyphs) {
+    const current = lines[lines.length - 1];
+    if (!current || Math.abs(current.bottom - glyph.bottom) > 4) {
+      lines.push({ text: glyph.text, bottom: glyph.bottom });
+    } else {
+      current.text = `${current.text} ${glyph.text}`.replace(/\s+/g, " ").trim();
+    }
+  }
+  return lines;
+}
+
+/** Part label, such as (d), of the line sitting just above the figure. */
+function anchorAbove(
+  box: { y: number },
+  lines: Array<{ text: string; bottom: number }>,
+): string {
+  const above = lines.filter((line) => line.bottom <= box.y + 14);
+  const closest = above[above.length - 1];
+  const previous = above[above.length - 2];
+  if (!closest) return "";
+  const part = (line: string) => line.match(/^\(([a-z])\)/i)?.[1];
+  if (closest.text.trim().length < 40 && previous && part(previous.text)) {
+    return `(${part(previous.text)!.toLowerCase()})`;
+  }
+  const own = part(closest.text);
+  if (own) return `(${own.toLowerCase()})`;
+  return closest.text.trim().slice(0, 80);
 }
 
 function rasterBoxes(coords: ArrayLike<number> | null | undefined, width: number, height: number) {

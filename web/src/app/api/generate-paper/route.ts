@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { buildPaperPrompt, buildSolutionPrompt } from "@/lib/buildPaperPrompt";
+import { buildMissingSolutionPrompt, buildPaperPrompt, buildSolutionPrompt } from "@/lib/buildPaperPrompt";
 import { figureLocksBroken, figureLocksFromPaper, repairFigureLocksLocally } from "@/lib/figureLocks";
 import { completeWithOpenRouter } from "@/lib/openrouter";
+import { questionsMissingAnswers } from "@/lib/pageLayout";
 import { asExamWorking, parseGeneratedOutput, substantiveText } from "@/lib/parseGeneratedOutput";
 
 export const maxDuration = 180;
@@ -127,7 +128,19 @@ export async function POST(request: Request) {
         markingScheme: "",
       };
     }
-    parsed = { ...parsed, suggestedSolution: asExamWorking(parsed.suggestedSolution), markingScheme: "" };
+    let solution = parsed.suggestedSolution;
+    const missing = questionsMissingAnswers(parsed.pastPaper, solution);
+    if (missing.length) {
+      const extra = await completeWithOpenRouter(
+        buildMissingSolutionPrompt({
+          generatedPaper: parsed.pastPaper,
+          solutionText,
+          missing,
+        }),
+      );
+      solution = `${solution}\n\n${extra}`;
+    }
+    parsed = { ...parsed, suggestedSolution: asExamWorking(solution), markingScheme: "" };
     return NextResponse.json({
       ...parsed,
       usedSolution: Boolean(solutionText),

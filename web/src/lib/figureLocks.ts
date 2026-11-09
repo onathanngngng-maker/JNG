@@ -61,8 +61,6 @@ export type FigureLock = {
   excerpt: string;
 };
 
-const FIGURE_CUE = /figure|diagram|shown in the following|the path below|in the figure below/i;
-
 export function figureLocksFromPaper(
   pastPaperText: string,
   pageLayout: Array<{ page: number; questionNumbers: number[]; figureCount?: number }>,
@@ -79,7 +77,7 @@ export function figureLocksFromPaper(
   return pages
     .map((page) => {
       const excerpt = (pageBodies[page.page - 1] || "").trim();
-      const hasFigure = (page.figureCount || 0) > 0 || FIGURE_CUE.test(excerpt);
+      const hasFigure = (page.figureCount || 0) > 0;
       if (!hasFigure) return null;
       return {
         page: page.page,
@@ -94,13 +92,12 @@ export function figureLocksFromPaper(
 export function figureLockPromptBlock(locks: FigureLock[]): string {
   if (!locks.length) return "";
   const lines = locks.map((lock) => {
-    const qs = lock.questionNumbers.length ? `question ${lock.questionNumbers.join(", ")} only` : `page ${lock.page} only`;
     const names = lock.identities.length
       ? lock.identities.join(", ")
       : "the labels drawn on the figure";
-    return `${qs} keep ${names}. Change numbers that are not printed on the figure, such as L and D when the drawing shows only those letters.`;
+    return `page ${lock.page}: only the part the drawing illustrates keeps ${names}. Put [FIGURE FROM ORIGINAL PAGE ${lock.page}] on its own line immediately after that part, before the next part. Rewrite every other question on that page. Same task and marks, different wording. A sentence that only asks the student to draw a diagram is not a printed figure. Do not add another question.`;
   });
-  return `FIGURE LOCKS (that question only): ${lines.join(" ")}`;
+  return `FIGURE POSITION: ${lines.join(" ")}`;
 }
 
 export function noFigurePromptBlock(

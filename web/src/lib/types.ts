@@ -2,6 +2,8 @@ export type PageLayout = {
   page: number;
   questionNumbers: number[];
   images: string[];
+  /** Text or part label that sits immediately above each image in the upload. */
+  imageAnchors?: string[];
 };
 
 export type ExtractedDocument = {
