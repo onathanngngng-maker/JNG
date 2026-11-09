@@ -1,11 +1,13 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { buildMissingSolutionPrompt, buildPaperPrompt, buildSolutionPrompt } from "@/lib/buildPaperPrompt";
 import { figureLocksBroken, figureLocksFromPaper, repairFigureLocksLocally } from "@/lib/figureLocks";
 import { completeWithOpenRouter } from "@/lib/openrouter";
 import { questionsMissingAnswers } from "@/lib/pageLayout";
 import { asExamWorking, parseGeneratedOutput, substantiveText } from "@/lib/parseGeneratedOutput";
+import { ACCESS_COOKIE, cookieAllowsAccess } from "@/lib/siteAccess";
 
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 const MIN_CHARS = 80;
 const MAX_CHARS = 80_000;
@@ -46,6 +48,11 @@ function asPageLayout(value: unknown): Array<{ page: number; questionNumbers: nu
 }
 
 export async function POST(request: Request) {
+  const jar = await cookies();
+  if (!(await cookieAllowsAccess(jar.get(ACCESS_COOKIE)?.value))) {
+    return NextResponse.json({ error: "Enter the password first." }, { status: 401 });
+  }
+
   let body: Body;
   try {
     body = (await request.json()) as Body;
