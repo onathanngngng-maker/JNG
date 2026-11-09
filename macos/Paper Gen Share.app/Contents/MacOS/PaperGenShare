@@ -1,6 +1,7 @@
 #!/bin/bash
-export PATH="/Users/chunheing/Projects/paper-gen/.conda/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-WEB="/Users/chunheing/Projects/paper-gen/web"
+ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+export PATH="$ROOT/.conda/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+WEB="$ROOT/web"
 LOG="/tmp/paper-gen-share.log"
 TUNNEL_LOG="/tmp/paper-gen-tunnel.log"
 cd "$WEB" || exit 1

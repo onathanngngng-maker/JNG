@@ -7,7 +7,6 @@ Upload a university past paper and suggested solution. The app generates a close
 In a terminal, from the `web` folder:
 
 ```bash
-cd /Users/chunheing/Projects/paper-gen/web
 ./start.sh          # only you, http://localhost:3000
 ```
 

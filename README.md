@@ -6,9 +6,8 @@ The app lives in `web/`.
 
 ```bash
 cd web
-export PATH="/Users/chunheing/Projects/paper-gen/.conda/bin:$PATH"
 cp .env.example .env.local
-npm run dev
+./start.sh
 ```
 
 Open [http://localhost:3000](http://localhost:3000).

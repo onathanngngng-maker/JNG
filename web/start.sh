@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 cd "$(dirname "$0")"
-export PATH="/Users/chunheing/Projects/paper-gen/.conda/bin:$PATH"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$ROOT/.conda/bin:$PATH"
 unset OPENROUTER_API_KEY OPENROUTER_MODEL OPENROUTER_MAX_TOKENS
 
 if lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then

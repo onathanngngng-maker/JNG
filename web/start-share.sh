@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 cd "$(dirname "$0")"
-export PATH="/Users/chunheing/Projects/paper-gen/.conda/bin:$PATH"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$ROOT/.conda/bin:$PATH"
 
 echo "Starting Paper Gen for you and for a public professor link..."
 echo "Keep this computer awake. Press Control+C to stop both."
