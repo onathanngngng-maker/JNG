@@ -108,7 +108,7 @@ b. time is equal to n half-lives
 mass*(1/2)^n = ... g
 Therefore, ...
 For later questions, put each "when n=" line and each photon energy on its own line, as the reference does.
-Exam working only. No Python, no pseudocode, no sympy, no code blocks, no ** exponents, no # comments, and no marking scheme.
+Exam working only. One calculation per line, the way a student writes it. No Python, no numpy, no sympy, no lines such as mu = 0.082, no code blocks, no ** exponents, no # comments, and no marking scheme. Finish every question, including the last one. Do not stop after copying the question.
 Do not write a page banner such as "PAGE 3 · QUESTION 3".
 Start each answer with exactly "Solution 1:", "Solution 2:", and so on, alone on its line.
 Keep spaces between words. Do not wrap a sentence in \\[ \\]. Write the working on the left, one step per line, in the same shape as the reference solution.
@@ -138,10 +138,10 @@ export function buildMissingSolutionPrompt(input: {
     ? clip(input.solutionText.trim(), 2500)
     : "(No reference solution. Write full working.)";
   const headings = input.missing.map((number) => `Solution ${number}:`).join("\n");
-  return `The solution is missing the working for question ${input.missing.join(", ")}.
+  return `The solution is missing the written working for question ${input.missing.join(", ")}.
 Write only those answers. Start each one with its heading on its own line:
 ${headings}
-Put the full working under the question, in the same detail as the reference. Use the generated paper's numbers. Do not add a question.
+Put the full working under the heading, one calculation per line, the way a student writes it. Use the generated paper's numbers. Do not add a question. Do not repeat the question and then stop. No Python, no numpy, no sympy, and no lines such as mu = 0.082.
 
 QUESTIONS:
 ${questions}

@@ -137,12 +137,12 @@ export async function POST(request: Request) {
     }
     let solution = parsed.suggestedSolution;
     const missing = questionsMissingAnswers(parsed.pastPaper, solution);
-    if (missing.length) {
+    for (const number of missing) {
       const extra = await completeWithOpenRouter(
         buildMissingSolutionPrompt({
           generatedPaper: parsed.pastPaper,
           solutionText,
-          missing,
+          missing: [number],
         }),
       );
       solution = `${solution}\n\n${extra}`;

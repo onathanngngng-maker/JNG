@@ -346,6 +346,18 @@ function distributeQuestions(
   }));
 }
 
+function isProgramWorking(text: string): boolean {
+  return /\b(?:import|def|numpy|sympy)\b|\b(?:np|sp)\.|\*\*/.test(text);
+}
+
+function hasWrittenWorking(text: string): boolean {
+  return /=/.test(text) || /therefore/i.test(text);
+}
+
+function isQuestionStem(text: string): boolean {
+  return /^\s*(?:Q\.?\s*)?\d{1,2}\.\s+[A-Za-z]/.test(text) && !hasWrittenWorking(text);
+}
+
 function withoutRepeatedQuestion(question: string, answer: string): string {
   const asked = question.toLowerCase().replace(/[^a-z0-9]+/g, "");
   if (!asked || !answer.trim()) return answer.trim();
@@ -363,6 +375,22 @@ function answersByQuestion(solutionText: string): Map<number, string> {
     const cleaned = body.trim();
     if (!cleaned) return;
     const previous = answers.get(number) || "";
+    if (!previous) {
+      answers.set(number, cleaned);
+      return;
+    }
+    const nextIsExam = !isProgramWorking(cleaned);
+    const previousIsExam = !isProgramWorking(previous);
+    if (nextIsExam && !previousIsExam) {
+      answers.set(number, cleaned);
+      return;
+    }
+    if (previousIsExam && !nextIsExam) return;
+    if (hasWrittenWorking(previous) && isQuestionStem(cleaned)) return;
+    if (hasWrittenWorking(cleaned) && isQuestionStem(previous)) {
+      answers.set(number, cleaned);
+      return;
+    }
     if (cleaned.length > previous.length) answers.set(number, cleaned);
   };
   for (const section of collectSolutionSections(solutionText)) remember(section.number, section.body);
@@ -377,6 +405,11 @@ export function questionsMissingAnswers(paperText: string, solutionText: string)
   const answers = answersByQuestion(solutionText);
   return splitQuestions(stripPrintedPageLabels(paperText))
     .filter((question) => question.body.trim().length > 40)
-    .map((question) => question.number)
-    .filter((number) => (answers.get(number) || "").replace(/\s+/g, "").length < 80);
+    .filter((question) => {
+      const answer = answers.get(question.number) || "";
+      const working = withoutRepeatedQuestion(question.body, answer);
+      if (isProgramWorking(answer) || isProgramWorking(working)) return true;
+      return working.replace(/\s+/g, "").length < 24;
+    })
+    .map((question) => question.number);
 }
